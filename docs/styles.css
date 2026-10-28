@@ -264,6 +264,7 @@ td.clickable,tr.clickable{cursor:pointer}
 .sb-meta{color:var(--dim);font-size:12px;margin-top:4px}
 
 .box-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.box-col{min-width:0}
 .box-team{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .box-team img{width:26px;height:26px;object-fit:contain}
 .box-team b{font-size:15px}
