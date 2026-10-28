@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: nba-explorer
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /api/meta
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: 8080
