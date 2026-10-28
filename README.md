@@ -1,143 +1,112 @@
-# NBA Explorer · NBA 赛事与球员数据查询站
+# NBA Explorer · NBA 赛程与球员数据查询站
 
-一个可本地运行的 NBA 数据网站：按赛季 / 日期 / 球队检索比赛记录与单场技术统计，查看球员生涯赛季数据、逐场日志、球队战绩与阵容。
+一个可本地运行、也已部署到 GitHub Pages 的 NBA 数据站：按赛季 / 日期 / 球队检索比赛，查看单场技术统计、球员生涯数据、逐场日志、投篮热区与球员对比。
 
-- 纯 Python 标准库后端（无需安装任何依赖）+ 原生 HTML/CSS/JS 前端
-- 数据来自 ESPN 公开接口（无需 API Key）
-- 已预取 **3 个完整赛季、4,199 场比赛、约 1,700 名球员** 的赛季数据
-- 未预取的日期/比赛会实时从 ESPN 抓取（有本地缓存）
+- 纯 Python 标准库：无需安装任何第三方包
+- 原始 HTML / CSS / JS 前端，无需构建工具
+- 数据来源：ESPN 公开接口 + FiveThirtyEight 历史赛果
+- 已预取 **1990-91 赛季至今（1991–2027）全部赛季**，约 4.7 万场比赛、数千名球员
 
-## 快速开始
+## 在线访问
+
+<https://z36145530-bit.github.io/nba-explorer/>
+
+纯静态版：前端直接读取仓库中的 JSON，并按需调用 ESPN 公开接口补全技术统计 / 球员生涯 / 投篮坐标，因此**不需要后端、不需要 API Key**。
+
+## 本地运行
 
 ```powershell
 cd nba-site
 python server.py --port 8600
 ```
 
-浏览器打开 <http://127.0.0.1:8600>。
+打开 <http://127.0.0.1:8600>。Windows 也可以双击 `start.bat`。
 
-Windows 下也可以直接双击 `start.bat`（自动打开浏览器）。
-
-> 若本机没有 `python` 命令，可用完整解释器路径：
+> 若系统没有 `python` 命令，可用完整路径：
 > `C:\Users\24031\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe server.py`
 
-## 功能
+本地版带磁盘缓存，ESPN 请求会落到 `data/cache/`，断网也能浏览已缓存内容。
 
-| 页面 | 能力 |
+## 页面与功能
+
+| 页面 | 内容 |
 | --- | --- |
-| 总览 | 赛季概览、最近赛果、得分榜、东西部排名 |
-| 赛程赛果 | 按日期、球队筛选；任意日期可查（本地没有的日期实时请求 ESPN）；点击进入单场 |
-| 比赛详情 | 双方球员完整数据表（MIN/PTS/FG/3PT/FT/REB/AST/TO/STL/BLK/OREB/DREB/PF/+/-）、球队数据对比、场地与日期 |
-| 球员数据 | 按球队、位置筛选，按得分/篮板/助攻/抢断/盖帽/命中率/两双排序，姓名搜索 |
-| 球员主页 | 生涯赛季场均数据（可点击切换赛季）、本赛季场均卡片、近期逐场日志 |
-| 球队 | 30 队卡片、分区战绩 |
-| 球队主页 | 战绩、场均得失分、主客场、赛季全部赛程、赛季阵容 |
+| 总览 | 当前赛季概览、最近赛果、得分榜、东西部排名 |
+| 赛程赛果 | 按赛季、日期、球队筛选；支持 `#/games?season=1991` 深链；点击任意比赛查看单场技术统计 |
+| 比赛详情 | 双方 box score（MIN/PTS/FG/3PT/FT/REB/AST/TO/STL/BLK/OREB/DREB/PF/+/-）、球队数据对比、跳转投篮热区 |
+| 球员数据 | 按球队、位置筛选，按场均得分/篮板/助攻/抢断/盖帽/失误/两双排序 |
+| 球员主页 | 生涯逐赛季数据、本赛季场均、近期比赛日志、点击赛季切换 |
+| 球队 / 球队主页 | 30 支球队、赛季战绩与阵容 |
 | 数据榜 | 8 个维度的联盟榜单 |
+| 球员对比 | 最多 4 人，8 项指标雷达图 |
+| 赛程日历 | 按月网格查看整季赛程，点击进入比赛 |
+| 投篮热区 | 单场回合级出手坐标，散点 / 热区两种模式，按球队、球员、命中与否筛选 |
 
-## 数据范围与更新
+## 数据范围与来源
 
-当前 `data/` 内置：
+`data/` 下按赛季分文件：
 
-- `2023-24`：1,395 场（常规赛 + 季后赛），562 名球员
-- `2024-25`：1,403 场，560 名球员
-- `2025-26`：1,401 场，578 名球员
-- 30 支球队、三个赛季的东西部排名
+- `1990-91`（1991）至 `1994-95`（1995）：比赛结果来自 FiveThirtyEight `nbaallelo.csv`，**仅含比分与胜负**，无逐场技术统计
+- `1995-96`（1996）至今：ESPN 公开接口，含比赛结果、单场 box score、球员赛季数据、投篮坐标
+- `1998-99` 为停摆赛季（792 场），属正常现象
+- `standings-YYYY.json`：东西部排名；`teams.json`：30 支球队与队标
 
-新增/刷新赛季：
+> 赛季 `year` 表示赛季结束年份：`year=2026` 即 2025-26 赛季。
+
+## 更新数据
 
 ```powershell
-# 抓取某个赛季（赛季年份用结束年份，如 2026 表示 2025-26）
-python prefetch.py 2026
+cd nba-site
 
-# 同时抓多个赛季
-python prefetch.py 2026 2025 2024 2023
+# 1) ESPN 覆盖的赛季（1996 及以后），可一次给多个年份或范围
+python prefetch.py 1996-2027
 
-# 只重建索引/补队标（有按天缓存，很快）
-python prefetch.py 2026 2025
+# 2) 1991-1995 历史赛果（FiveThirtyEight）
+python prefetch_538.py
+
+# 3) 重建 meta.json
+python rebuild_meta.py
+
+# 4) 生成静态站点 docs/
+python build_static.py
+
+# 5) 发布到 GitHub Pages（需要仓库写权限的 token）
+$env:GH_TOKEN = "ghp_xxx"
+python deploy_pages.py
 ```
 
-`prefetch.py` 会按天请求 ESPN 记分牌，缓存在 `data/cache/games/`，支持断点续跑：中断后重新执行即可。
+`prefetch.py` 会按天缓存 ESPN 响应到 `data/cache/games/`，支持中断后重跑续传。
 
 ## 目录结构
 
 ```
 nba-site/
-├─ server.py            # 本地服务：静态站点 + /api 数据接口 + ESPN 代理缓存
-├─ prefetch.py          # 数据预取：球队/排名/赛程/球员赛季数据
+├─ server.py            # 本地服务：静态站 + /api 数据接口 + ESPN 代理与缓存
+├─ prefetch.py          # 预取赛季赛程 / 排名 / 球员数据（ESPN）
+├─ prefetch_538.py      # 生成 1991-1995 赛果（FiveThirtyEight）
+├─ rebuild_meta.py      # 重建 data/meta.json
+├─ build_static.py      # 生成 GitHub Pages 用的 docs/（含 search-index）
+├─ deploy_pages.py      # 通过 GitHub API 上传 docs/ 并启用 Pages
 ├─ start.bat            # Windows 一键启动
-├─ data/
-│  ├─ teams.json        # 30 队（含队标、主色）
-│  ├─ games-YYYY.json   # 赛季全部比赛（含比分、胜负、主客、场地、状态）
-│  ├─ players-YYYY.json # 赛季球员场均数据
+├─ data/                # 各赛季 JSON 数据（serve 与 docs 共用）
+│  ├─ teams.json
+│  ├─ games-YYYY.json
+│  ├─ players-YYYY.json
 │  ├─ standings-YYYY.json
-│  ├─ meta.json         # 赛季清单与数据更新时间
-│  └─ cache/            # ESPN 原始响应缓存（可删除，删后自动重新请求）
-└─ static/
-   ├─ index.html
-   ├─ app.js            # 前端路由与全部页面渲染
-   └─ styles.css
+│  ├─ search-index.json
+│  ├─ meta.json
+│  └─ cache/            # ESPN 原始响应缓存，可删
+├─ static/              # 前端源码
+│  ├─ index.html
+│  ├─ app.js
+│  ├─ api-static.js     # 纯静态版的数据层（docs 中被 index.html 引用）
+│  └─ styles.css
+└─ docs/                # build_static.py 生成，GitHub Pages 发布目录
 ```
 
-## 主要接口
+## 已知限制
 
-| 接口 | 说明 |
-| --- | --- |
-| `/api/meta` | 赛季清单、比赛/球员数量 |
-| `/api/teams` | 30 支球队 |
-| `/api/standings?season=2026` | 东西部排名 |
-| `/api/games?season=2026&date=2026-04-13&team=GS` | 比赛列表（支持日期/球队过滤、倒序、限量） |
-| `/api/game?id=401859967` | 单场详情 + box score（本地没有的比赛实时抓取） |
-| `/api/players?season=2026&sort=avgPoints&limit=60&offset=0&pos=G&team=GS&q=curry` | 球员赛季数据（排序/筛选/分页） |
-| `/api/leaders?season=2026&stat=avgPoints` | 榜单 |
-| `/api/player?id=3975&season=2026` | 球员简介 + 生涯赛季数据 |
-| `/api/gamelog?id=3975&season=2026` | 球员逐场日志 |
-| `/api/roster?team=9&season=2026` | 赛季阵容 |
-| `/api/search?q=curry` | 球员搜索 |
-
-接口均返回 JSON，可单独用于做数据可视化或二次开发。
-
-## 说明与限制
-
-- 数据源为 ESPN 公开接口，仅供学习研究；请求带本地缓存（记分牌 120s、球员/排名 10–60min、单场 10min、阵容 30min）。
-- 球员列表按“有出场数据的合格球员”统计，因此赛季阵容人数会略少于 15 人满编。
-- 更早赛季（如 2010 年代）未预取，但赛程页按日期查询可实时拉取；若想离线全量可自行 `python prefetch.py 2019 2018 ...`。
-- 无网络时：已预取的三个赛季的赛程、球员、排名可正常浏览；单场 box score 与更早日期需要联网。
-
-## 新增模块（v2）
-
-- **球员对比** `#/compare`：最多 4 人同屏，雷达图（8 项指标在联盟中的相对水平）+ 赛季数据表；输入球员名回车即可添加。
-- **赛程日历** `#/calendar`：按月查看整季赛程/赛果，日期格子显示比分与胜者，点击进入当日比赛列表。
-- **投篮热区** `#/shots?game=<比赛ID>`：单场逐回合投篮坐标，可切换散点/热区、球队、命中/未中、球员；比赛详情页右上角有入口。
-  数据来自 ESPN summary 的 plays（`shootingPlay` + `coordinate`，单位为英尺，坐标原点在底线中点）。
-
-## 部署上线
-
-项目已经带好部署配置，**三种方式任选**：
-
-### 方式 A：Render（免费，推荐，自带 HTTPS）
-
-1. 把 `nba-site/` 推到 GitHub 仓库；
-2. 打开 <https://dashboard.render.com> → **New → Blueprint**，选择该仓库（会自动读取 `render.yaml`）；
-3. 确认创建即可，几分钟后得到 `https://<name>.onrender.com`。
-
-> 免费实例会休眠，首次访问需等 30–60 秒唤醒；数据更新可在 Render 控制台点 **Manual Deploy**。
-
-### 方式 B：任意云服务器 / 本机 Docker
-
-```bash
-docker build -t nba-explorer .
-docker run -d -p 8080:8080 --name nba-explorer nba-explorer
-# 访问 http://<服务器IP>:8080
-```
-
-`Dockerfile` 已内置健康检查；`PORT`、`HOST` 均可用环境变量覆盖。
-
-### 方式 C：局域网展示（答辩/组会临时用）
-
-```powershell
-python server.py --host 0.0.0.0 --port 8600
-```
-
-同一局域网设备访问 `http://<本机IP>:8600`；Windows 首次运行需在防火墙提示中允许 Python 访问专用网络。
-
-> 说明：站点不是纯静态页面——比赛详情、更早日期、投篮坐标都通过后端实时代理 ESPN，所以必须用 `server.py` 或容器运行，不能只把 `static/` 传到静态托管。
+- 1995-96 以前的赛季只有比分，比赛详情页会提示“暂无本场技术统计”
+- 部分老赛季的球员名单 / 球员头像不完整，属 ESPN 数据缺失
+- 球队历史缩写已做映射（NJN→BKN、SEA→OKC、CHH→CHA、VAN→MEM、NOH→NOP、WSB→WAS、KCK→SAC、SDC/BUF→LAC），因此老比赛按现用队标展示
+- 纯静态版依赖浏览器直连 ESPN；接口变动或网络受限时，比赛详情可能降级为“仅比分”
