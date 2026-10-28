@@ -376,6 +376,7 @@ async function viewGame(seg) {
     const rows = teamBlock.rows || [];
     const labels = ['MIN', 'PTS', 'REB', 'AST', 'STL', 'BLK', 'TO', 'FG', '3PT', 'FT', '+/-'];
     return `
+      <div class="box-col">
       <div class="box-team">
         ${teamBlock.team.logo ? `<img src="${escapeHtml(teamBlock.team.logo)}" alt="">` : ''}
         <b>${escapeHtml(teamBlock.team.displayName || abbrOf(teamBlock.team))}</b>
@@ -393,6 +394,7 @@ async function viewGame(seg) {
             }).join('')}
           </tbody>
         </table>
+      </div>
       </div>`;
   };
 
