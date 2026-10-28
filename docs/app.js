@@ -195,13 +195,16 @@ async function viewHome() {
   const season = state.season;
   const metaSeason = (state.meta?.seasons || []).find((s) => s.year === season) || {};
   const data = await withLoading(() => Promise.all([
-    api('games', { season, order: 'desc', limit: 240 }),
+    api('games', { season, order: 'desc' }),
     api('leaders', { season, stat: 'avgPoints' }),
     api('standings', { season }),
   ]));
   if (!data) return;
   const [gamesResp, leaders, standings] = data;
-  const games = (gamesResp.games || []).filter((g) => g.status?.state === 'post').slice(0, 6);
+  const games = (gamesResp.games || [])
+    .filter((g) => g.status?.state === 'post')
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+    .slice(0, 6);
 
   const topScorers = (leaders.players || []).slice(0, 6);
   const confs = standings.groups || [];
