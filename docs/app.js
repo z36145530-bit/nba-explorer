@@ -168,6 +168,12 @@ function parseHash() {
 function router() {
   const { seg, q } = parseHash();
   state.route = seg[0] || 'home';
+  const qSeason = q && q.season ? String(q.season) : '';
+  if (qSeason && qSeason !== String(state.season) && (state.seasons || []).some((s) => String(s.year) === qSeason)) {
+    state.season = qSeason;
+    localStorage.setItem('nba-season', qSeason);
+    renderSeasonSelect();
+  }
   document.querySelectorAll('#nav a').forEach((a) => {
     a.classList.toggle('active', a.dataset.route === (state.route === 'home' ? '' : state.route));
   });
