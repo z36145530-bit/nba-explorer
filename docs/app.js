@@ -32,8 +32,10 @@ function formatDate(iso, withWeek = false) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   const week = '日一二三四五六'[d.getDay()];
+  const thisYear = new Date().getFullYear();
+  const yPrefix = d.getFullYear() !== thisYear ? `${d.getFullYear()}年` : '';
   const base = `${d.getMonth() + 1}月${d.getDate()}日`;
-  return withWeek ? `${base} · 周${week}` : base;
+  return withWeek ? `${yPrefix}${base} · 周${week}` : `${yPrefix}${base}`;
 }
 
 function formatTime(iso) {
@@ -282,7 +284,12 @@ async function viewHome() {
 async function viewGames(seg, q) {
   const date = q.date || '';
   const team = (q.team || '').toUpperCase();
-  const season = state.season;
+  const season = q.season ? Number(q.season) : state.season;
+  if (q.season && String(season) !== String(state.season)) {
+    state.season = season;
+    localStorage.setItem('nba-season', String(season));
+    renderSeasonSelect();
+  }
   app.innerHTML = `
     <div class="page-head">
       <div>
@@ -357,9 +364,19 @@ function statValue(row, key) {
 async function viewGame(seg) {
   const id = seg[1];
   if (!id) { location.hash = '#/games'; return; }
-  const payload = await withLoading(() => api('game', { id }));
+  const payload = await withLoading(() => api('game', { id, season: state.season }));
   if (!payload) return;
   const { game, box } = payload;
+  const gameDateStr = String(game?.date || game?.gameDate || '').slice(0, 10);
+  if (gameDateStr.length === 10) {
+    const [gy, gm] = gameDateStr.split('-').map(Number);
+    const gameSeason = gm >= 9 ? gy + 1 : gy;
+    if (String(gameSeason) !== String(state.season)) {
+      state.season = String(gameSeason);
+      localStorage.setItem('nba-season', state.season);
+      renderSeasonSelect();
+    }
+  }
   if (!game) {
     app.innerHTML = emptyState('未找到该场比赛', '可能是历史比赛或数据尚未收录，可回到赛程页按日期查询');
     return;
@@ -434,7 +451,7 @@ async function viewGame(seg) {
         <h1>比赛详情</h1>
         <div class="sub">${escapeHtml(formatDate(game.date, true))} · ${escapeHtml(game.venue || '')}</div>
       </div>
-      <a class="btn small" href="#/shots?game=${encodeURIComponent(id)}">投篮热区 →</a>
+      <a class="btn small" href="#/shots?game=${encodeURIComponent(id)}" style="${id.indexOf('538-') === 0 ? 'display:none' : ''}">投篮热区 →</a>
       <a class="btn small ghost" href="#/games">← 返回赛程</a>
     </div>
 
@@ -466,7 +483,7 @@ async function viewGame(seg) {
         ${players[1] ? boxTable(players[1]) : ''}
       </div>
       <div class="mini-note">点击球员可进入球员主页；DNP 表示未出场。</div>
-    ` : emptyState('暂无本场技术统计', '该场比赛的技术统计暂未收录')}
+    ` : emptyState('暂无本场技术统计', id.indexOf('538-') === 0 ? '1996 年以前的赛季仅收录比赛结果，暂不提供逐场技术统计' : '该场比赛的技术统计暂未收录')}
 
     ${compare}
   `;
@@ -559,7 +576,12 @@ async function viewPlayers(seg, q) {
   $('#pCount').textContent = `共 ${resp.total} 人`;
   const players = resp.players || [];
   if (!players.length) {
-    $('#pTable').innerHTML = emptyState('没有匹配的球员', '换个关键词或清空筛选条件');
+    const metaSeason = (state.meta?.seasons || []).find((s) => String(s.year) === String(season)) || {};
+    const noData = !metaSeason.players && Number(season) <= 1995;
+    $('#pTable').innerHTML = emptyState(
+      noData ? '该赛季暂无球员数据' : '没有匹配的球员',
+      noData ? '1996 年以前的赛季仅收录比赛结果，球员赛季数据自 1996-97 赛季起提供' : '换个关键词或清空筛选条件',
+    );
     return;
   }
   $('#pTable').innerHTML = `

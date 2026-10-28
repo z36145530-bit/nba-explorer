@@ -63,7 +63,7 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-  /* ---------------- 索引 ---------------- */
+  /* ---------------- 索引（按需加载，避免一次拉全部赛季） ---------------- */
   let IDX = null;
   async function indexes() {
     if (IDX) return IDX;
@@ -71,21 +71,43 @@
     const teams = await dataFile('teams.json');
     const teamByAbbr = new Map(teams.map((t) => [t.abbr, t]));
     const teamById = new Map(teams.map((t) => [String(t.id), t]));
-    const gameIndex = Object.create(null);
-    const playerTeam = Object.create(null);
-    for (const s of meta.seasons || []) {
-      const y = String(s.year);
-      const g = await dataFile(`games-${y}.json`).catch(() => ({ games: [] }));
-      for (const game of g.games || []) gameIndex[String(game.id)] = game;
-      const p = await dataFile(`players-${y}.json`).catch(() => ({ players: [] }));
-      const map = Object.create(null);
-      for (const pl of p.players || []) {
-        map[String(pl.id)] = { teamAbbr: pl.teamAbbr, teamLogo: pl.teamLogo, teamId: pl.teamId };
-      }
-      playerTeam[y] = map;
-    }
-    IDX = { meta, teams, teamByAbbr, teamById, gameIndex, playerTeam, latest: String((meta.seasons || [])[0]?.year || '') };
+    const searchIndex = await dataFile('search-index.json').catch(() => ({ players: [] }));
+    const latest = String((meta.seasons || [])[0]?.year || '');
+    IDX = { meta, teams, teamByAbbr, teamById, searchIndex, latest };
     return IDX;
+  }
+
+  const seasonCache = new Map();
+  function seasonGames(year) {
+    const key = 'games-' + year;
+    if (!seasonCache.has(key)) {
+      seasonCache.set(key, dataFile(`games-${year}.json`).catch(() => ({ season: Number(year), games: [] })));
+    }
+    return seasonCache.get(key);
+  }
+  function seasonPlayers(year) {
+    const key = 'players-' + year;
+    if (!seasonCache.has(key)) {
+      seasonCache.set(key, dataFile(`players-${year}.json`).catch(() => ({ season: Number(year), players: [] })));
+    }
+    return seasonCache.get(key);
+  }
+  // 从 538 的 game id（538-YYYYMMDDxxx）反推赛季（赛季以结束年计）
+  function seasonOfGameId(id) {
+    const s = String(id || '');
+    if (s.indexOf('538-') === 0 && s.length >= 12) {
+      const y = Number(s.slice(4, 8));
+      const m = Number(s.slice(8, 10));
+      if (y > 1900 && m >= 1 && m <= 12) return m >= 9 ? y + 1 : y;
+    }
+    return null;
+  }
+  async function localGame(id, seasonHint) {
+    const fromId = seasonOfGameId(id);
+    const year = fromId || seasonHint;
+    if (!year) return null;
+    const data = await seasonGames(String(year));
+    return (data.games || []).find((g) => String(g.id) === String(id)) || null;
   }
 
   function parseCompetitor(c) {
@@ -184,45 +206,54 @@
     };
   }
 
-  async function normalizeGameFull(eventId) {
+  async function normalizeGameFull(eventId, seasonHint) {
     const id = String(eventId);
-    const summary = await fetchJson(`${CORE}/summary?event=${encodeURIComponent(id)}`);
-    const box = boxFromSummary(summary);
-    let detail = (await indexes()).gameIndex[id] || null;
-    if (!detail) {
-      const comp = ((summary.header || {}).competitions || [{}])[0] || {};
-      const sides = {};
-      for (const c of comp.competitors || []) {
-        const t = c.team || {};
-        sides[c.homeAway] = {
-          id: t.id,
-          abbr: t.abbreviation,
-          name: t.name,
-          displayName: t.displayName,
-          logo: IDX.teamByAbbr.get(t.abbreviation)?.logo || logoFrom(t),
-          score: c.score,
-          winner: Boolean(c.winner),
-          record: ((c.records || [{}])[0] || {}).summary,
-        };
-      }
-      if (sides.home && sides.away) {
-        detail = {
-          id,
-          date: comp.date,
-          gameDate: (comp.date || '').slice(0, 10),
-          season: null,
-          seasonType: null,
-          name: ((comp.notes || [{}])[0] || {}).headline || '',
-          shortName: '',
-          home: sides.home,
-          away: sides.away,
-          status: { state: 'post', completed: true, detail: 'Final' },
-          venue: (comp.venue || {}).fullName,
-          neutral: Boolean(comp.neutralSite),
-        };
-      }
+    const idx = await indexes();
+    let detail = await localGame(id, seasonHint);
+    if (id.indexOf('538-') === 0) {
+      return detail ? { game: detail, box: null, source: '538' } : { game: null, box: null, source: '538' };
     }
-    return { game: detail, box, source: 'espn' };
+    let box = null;
+    try {
+      const summary = await fetchJson(`${CORE}/summary?event=${encodeURIComponent(id)}`);
+      box = boxFromSummary(summary);
+      if (!detail) {
+        const comp = ((summary.header || {}).competitions || [{}])[0] || {};
+        const sides = {};
+        for (const c of comp.competitors || []) {
+          const t = c.team || {};
+          sides[c.homeAway] = {
+            id: t.id,
+            abbr: t.abbreviation,
+            name: t.name,
+            displayName: t.displayName,
+            logo: idx.teamByAbbr.get(t.abbreviation)?.logo || logoFrom(t),
+            score: c.score,
+            winner: Boolean(c.winner),
+            record: ((c.records || [{}])[0] || {}).summary,
+          };
+        }
+        if (sides.home && sides.away) {
+          detail = {
+            id,
+            date: comp.date,
+            gameDate: (comp.date || '').slice(0, 10),
+            season: null,
+            seasonType: null,
+            name: ((comp.notes || [{}])[0] || {}).headline || '',
+            shortName: '',
+            home: sides.home,
+            away: sides.away,
+            status: { state: 'post', completed: true, detail: 'Final' },
+            venue: (comp.venue || {}).fullName,
+            neutral: Boolean(comp.neutralSite),
+          };
+        }
+      }
+    } catch (err) {
+      // 老比赛 ESPN 没有技术统计：退化为本地比赛结果
+    }
+    return { game: detail, box, source: box ? 'espn' : 'local' };
   }
 
   /* ---------------- 球员 ---------------- */
@@ -256,8 +287,9 @@
     let team = payload.team || null;
     if (!team) {
       const idx = await indexes();
-      const year = String(seasonYear || idx.latest);
-      const hit = (idx.playerTeam[year] || {})[String(athleteId)];
+      const y = String(seasonYear || idx.latest);
+      const list = (await seasonPlayers(y)).players || [];
+      const hit = list.find((p) => String(p.id) === String(athleteId));
       if (hit && hit.teamAbbr) {
         const t = idx.teamByAbbr.get(hit.teamAbbr) || {};
         const logo = hit.teamLogo || t.logo || '';
@@ -337,7 +369,7 @@
     const abbr = String(team.abbr || '').toUpperCase();
     const out = [];
     if (seasonYear) {
-      const players = (await dataFile(`players-${seasonYear}.json`).catch(() => ({ players: [] }))).players || [];
+      const players = (await seasonPlayers(String(seasonYear))).players || [];
       for (const p of players) {
         if (abbr && String(p.teamAbbr || '').toUpperCase() === abbr) {
           out.push({
@@ -371,18 +403,22 @@
     const idx = await indexes();
     const out = [];
     const seen = new Set();
-    for (const s of idx.meta.seasons || []) {
-      const y = String(s.year);
-      const players = (await dataFile(`players-${y}.json`).catch(() => ({ players: [] }))).players || [];
-      for (const p of players) {
+    for (const p of (idx.searchIndex.players || [])) {
+      const id = String(p.id);
+      if (seen.has(id)) continue;
+      if (String(p.name || '').toLowerCase().indexOf(text) >= 0) {
+        seen.add(id);
+        out.push({ id: p.id, name: p.name, team: p.team || '', position: p.position || '', headshot: p.headshot || '' });
+      }
+    }
+    if (!out.length) {
+      const list = (await seasonPlayers(idx.latest)).players || [];
+      for (const p of list) {
         const id = String(p.id);
         if (seen.has(id)) continue;
         if (String(p.name || '').toLowerCase().indexOf(text) >= 0) {
           seen.add(id);
-          out.push({
-            id: p.id, name: p.name, team: p.teamAbbr || '',
-            position: p.position || '', headshot: p.headshot || '',
-          });
+          out.push({ id: p.id, name: p.name, team: p.teamAbbr || '', position: p.position || '', headshot: p.headshot || '' });
         }
       }
     }
@@ -474,7 +510,7 @@
         if (!year && dateStr) year = idx.latest;
         let games = [];
         if (year) {
-          const g = await dataFile(`games-${year}.json`).catch(() => ({ games: [] }));
+          const g = await seasonGames(year);
           games = g.games || [];
         }
         if (dateStr) {
@@ -494,18 +530,19 @@
             (g) => g.home?.abbr === team || g.away?.abbr === team
           );
         }
+        const total = games.length;
         if (q.order === 'desc') games = games.slice().reverse();
         const limit = parseInt(q.limit, 10) || 0;
         if (limit) games = games.slice(0, limit);
-        return { season: year, count: games.length, games };
+        return { season: year, count: total, games };
       }
 
       case 'game':
-        return normalizeGameFull(q.id);
+        return normalizeGameFull(q.id, q.season);
 
       case 'players': {
         const year = String(q.season || idx.latest);
-        const data = await dataFile(`players-${year}.json`).catch(() => ({ players: [] }));
+        const data = await seasonPlayers(year);
         let rows = data.players || [];
         const pos = String(q.pos || '').toUpperCase();
         const team = String(q.team || '').toUpperCase();
@@ -527,7 +564,7 @@
       case 'leaders': {
         const year = String(q.season || idx.latest);
         const stat = q.stat || 'avgPoints';
-        const data = await dataFile(`players-${year}.json`).catch(() => ({ players: [] }));
+        const data = await seasonPlayers(year);
         const rows = (data.players || [])
           .slice()
           .sort((a, b) => statNum(b.stats?.[stat]) - statNum(a.stats?.[stat]))
