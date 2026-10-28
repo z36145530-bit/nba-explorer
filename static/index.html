@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NBA Explorer · 赛事与球员数据</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='%23ff6b35'/%3E%3Cpath d='M50 4v92M4 50h92M19 19c18 22 18 40 0 62M81 19c-18 22-18 40 0 62' stroke='%23070d17' stroke-width='4' fill='none'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#/">
+      <span class="brand-icon">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="currentColor"/>
+          <path d="M50 4v92M4 50h92M19 19c18 22 18 40 0 62M81 19c-18 22-18 40 0 62" stroke="#070d17" stroke-width="4" fill="none"/>
+        </svg>
+      </span>
+      <span class="brand-text">NBA<b>Explorer</b></span>
+    </a>
+
+    <nav class="nav" id="nav">
+      <a href="#/" data-route="">总览</a>
+      <a href="#/games" data-route="games">赛程赛果</a>
+      <a href="#/players" data-route="players">球员数据</a>
+      <a href="#/teams" data-route="teams">球队</a>
+      <a href="#/leaders" data-route="leaders">数据榜</a>
+      <a href="#/compare" data-route="compare">球员对比</a>
+      <a href="#/calendar" data-route="calendar">赛程日历</a>
+    </nav>
+
+    <div class="top-actions">
+      <label class="season-pick">
+        <span>赛季</span>
+        <select id="seasonSelect"></select>
+      </label>
+      <button class="icon-btn" id="refreshBtn" title="刷新数据">⟳</button>
+    </div>
+  </header>
+
+  <main id="app" class="app"></main>
+
+  <footer class="footer">
+    <span>NBA Explorer · 本地数据代理</span>
+    <span class="dot">·</span>
+    <span>数据来源 ESPN 公开接口，仅供学习研究</span>
+    <span class="dot">·</span>
+    <span id="footerUpdated">—</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status"></div>
+  <div class="loading" id="loading" hidden><span class="spinner"></span></div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
