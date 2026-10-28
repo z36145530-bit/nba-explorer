@@ -1,0 +1,6 @@
+data/cache
+.shots
+*.zip
+__pycache__
+*.pyc
+.pytest_cache
