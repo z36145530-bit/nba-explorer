@@ -195,7 +195,7 @@ async function viewHome() {
   const season = state.season;
   const metaSeason = (state.meta?.seasons || []).find((s) => s.year === season) || {};
   const data = await withLoading(() => Promise.all([
-    api('games', { season, order: 'desc', limit: 8 }),
+    api('games', { season, order: 'desc', limit: 240 }),
     api('leaders', { season, stat: 'avgPoints' }),
     api('standings', { season }),
   ]));
