@@ -6,7 +6,8 @@
 (function (global) {
   'use strict';
 
-  const CORE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba';
+  // 注意：site.api.espn.com 在浏览器里不带 CORS 头，改用同一套接口的 site.web.api 主机
+  const CORE = 'https://site.web.api.espn.com/apis/site/v2/sports/basketball/nba';
   const COMMON = 'https://site.web.api.espn.com/apis/common/v3/sports/basketball/nba';
   const DATA_BASE =
     global.__NBA_DATA_BASE__ ||
