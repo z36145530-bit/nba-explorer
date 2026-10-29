@@ -914,7 +914,9 @@ async function viewHonors() {
     </div>
     <div class="section">
       <div class="section-head"><h2>${escapeHtml(block?.label || '')} 赛季主要奖项</h2><span class="more">${awards.length} 个奖项</span></div>
-      <div class="honor-grid">${singles.map(card).join('')}</div>
+      ${awards.length
+        ? `<div class="honor-grid">${singles.map(card).join('')}</div>`
+        : '<div class="empty">该赛季奖项尚未产生（赛季进行中或无数据）</div>'}
     </div>
     <div class="section">
       <div class="section-head"><h2>最佳阵容 / 最佳防守阵容</h2><span class="more">All-NBA &amp; All-Defensive</span></div>
