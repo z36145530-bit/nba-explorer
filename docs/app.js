@@ -82,6 +82,34 @@ const posBi = (pos) => {
 };
 const enc = (text) => encodeURIComponent(String(text || ''));
 
+/* 中文球员名映射（按英文名归一化匹配） */
+let ZH_NAMES = {};
+const normName = (s) => String(s || '')
+  .toLowerCase()
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[.'\u2019\u00b7\u00b4`]/g, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+const biName = (name) => {
+  const zh = ZH_NAMES[normName(name)];
+  return zh ? `${zh} ${name}` : String(name || '');
+};
+async function loadZhNames() {
+  if (Object.keys(ZH_NAMES).length) return;
+  for (const url of ['data/player-name-zh.json', '/data/player-name-zh.json']) {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const raw = await res.json();
+        ZH_NAMES = {};
+        for (const k in raw) ZH_NAMES[normName(k)] = raw[k];
+        return;
+      }
+    } catch (err) { /* ignore */ }
+  }
+}
+
 /* 历史与现用缩写归一（538 数据用现名，ESPN 排名用当季名） */
 const ABBR_FIX = {
   NJ: 'BKN', NJN: 'BKN', NY: 'NYK', SEA: 'OKC', SA: 'SAS', UTAH: 'UTA',
@@ -186,7 +214,7 @@ function playerLine(p, rank) {
       ${rank ? `<span class="rank">${rank}</span>` : ''}
       ${p.headshot ? `<img class="avatar" src="${escapeHtml(p.headshot)}" alt="" loading="lazy">` : '<span class="avatar"></span>'}
       <span class="who">
-        <span class="nm">${escapeHtml(p.name)}</span>
+        <span class="nm">${escapeHtml(biName(p.name))}</span>
         <span class="tm">${escapeHtml(p.teamAbbr || '')} · ${escapeHtml(p.position || '')} </span>
       </span>
       <span class="val">${num(stats.avgPoints)}<small> 分</small></span>
@@ -231,6 +259,7 @@ function router() {
     calendar: viewCalendar,
     shots: viewShots,
     playoffs: viewPlayoffs,
+    honors: viewHonors,
   };
   const view = views[state.route] || viewHome;
   app.innerHTML = '<div class="skeleton" style="height:220px"></div>';
@@ -461,7 +490,7 @@ async function viewGame(seg) {
             ${rows.map((row) => {
               const dnp = (row.stats?.MIN || '') === '' || row.stats?.MIN === 'DNP';
               return `<tr class="${dnp ? '' : 'clickable'}" ${dnp ? '' : `onclick="location.hash='#/player/${row.id}'"`}>
-                <td><div class="tplayer"><span class="tmeta"><b>${escapeHtml(row.name)}</b><span>${escapeHtml(row.position || '')}${row.starter ? ' · 首发 Starter' : ''}</span></span></div></td>
+                <td><div class="tplayer"><span class="tmeta"><b>${escapeHtml(biName(row.name))}</b><span>${escapeHtml(row.position || '')}${row.starter ? ' · 首发 Starter' : ''}</span></span></div></td>
                 ${labels.map((l) => `<td>${escapeHtml(statValue(row, l))}</td>`).join('')}
               </tr>`;
             }).join('')}
@@ -688,7 +717,7 @@ async function viewPlayers(seg, q) {
           return `<tr class="clickable" onclick="location.hash='#/player/${encodeURIComponent(p.id)}'">
             <td>${offset + i + 1}</td>
             <td><div class="tplayer">${p.headshot ? `<img class="av" src="${escapeHtml(p.headshot)}" alt="" loading="lazy">` : '<span class="av"></span>'}
-              <span class="tmeta"><b>${escapeHtml(p.name)}</b><span>${escapeHtml(p.age ? `${p.age} 岁` : '')}</span></span></div></td>
+              <span class="tmeta"><b>${escapeHtml(biName(p.name))}</b><span>${escapeHtml(p.age ? `${p.age} 岁` : '')}</span></span></div></td>
             <td>${p.teamLogo ? `<span class="team-cell"><img src="${escapeHtml(p.teamLogo)}" alt="">${escapeHtml(p.teamAbbr || '')}</span>` : escapeHtml(p.teamAbbr || '—')}</td>
             <td>${escapeHtml(p.position || '—')}</td>
             <td>${num(s.gamesPlayed, 0)}</td>
@@ -727,9 +756,10 @@ async function viewPlayer(seg, q) {
   const data = await withLoading(() => Promise.all([
     api('player', { id, season }),
     api('gamelog', { id, season }).catch(() => null),
+    api('honors').catch(() => null),
   ]));
   if (!data) return;
-  const [player, log] = data;
+  const [player, log, honorsPayload] = data;
   if (!player || !player.bio) {
     app.innerHTML = emptyState('未找到该球员', '请检查链接或从球员列表进入');
     return;
@@ -748,6 +778,25 @@ async function viewPlayer(seg, q) {
       <td>${num(st['FG%'])}</td><td>${num(st['3P%'])}</td><td>${num(st['FT%'])}</td>
     </tr>`;
   }).join('');
+
+  const honorList = [];
+  if (honorsPayload && honorsPayload.seasons) {
+    for (const hs of honorsPayload.seasons) {
+      for (const aw of hs.awards || []) {
+        for (const w of aw.winners || []) {
+          if (String(w.id) === String(id)) honorList.push({ label: hs.label, award: aw.nameZh || aw.name, abbr: w.teamAbbr || '' });
+        }
+      }
+    }
+  }
+  const honorsBlock = honorList.length
+    ? `<div class="section">
+        <div class="section-head"><h2>荣誉 Honors</h2><span class="more">共 ${honorList.length} 项</span></div>
+        <div class="honor-chips">
+          ${honorList.map((h) => `<span class="honor-chip"><b>${escapeHtml(h.award)}</b><em>${escapeHtml(h.label || '')}</em></span>`).join('')}
+        </div>
+      </div>`
+    : '';
 
   let logTable = '';
   if (log && log.games && log.games.length) {
@@ -786,7 +835,7 @@ async function viewPlayer(seg, q) {
       <div>
         <div class="eyebrow">Player Profile</div>
         <h1>球员主页</h1>
-        <div class="sub">${escapeHtml(bio.name || '')} · ${escapeHtml(current?.label || '')} 赛季</div>
+        <div class="sub">${escapeHtml(biName(bio.name || ''))} · ${escapeHtml(current?.label || '')} 赛季</div>
       </div>
       <a class="btn small" href="#/players">← 返回球员列表</a>
     </div>
@@ -798,7 +847,7 @@ async function viewPlayer(seg, q) {
           ${team.logo ? `<span class="team-badge"><img src="${escapeHtml(team.logo)}" alt="">${escapeHtml(team.displayName || abbrOf(team))}</span>` : ''}
           <span>#${escapeHtml(bio.jersey || '—')} · ${escapeHtml(bio.positionName || bio.position || '')}</span>
         </div>
-        <h1>${escapeHtml(bio.name || '')}</h1>
+        <h1>${escapeHtml(biName(bio.name || ''))}</h1>
         <div class="bio-chips">
           <span>身高 <b>${escapeHtml(bio.height || '—')}</b></span>
           <span>体重 <b>${escapeHtml(bio.weight || '—')}</b></span>
@@ -829,8 +878,52 @@ async function viewPlayer(seg, q) {
       </div>
     </div>
 
+    ${honorsBlock}
     ${logTable}
   `;
+}
+
+
+/* ============================== 荣誉榜 ============================== */
+async function viewHonors() {
+  const payload = await withLoading(() => api('honors'));
+  if (!payload) return;
+  const seasons = (payload.seasons || []).slice().sort((a, b) => Number(b.year) - Number(a.year));
+  const season = String(state.season);
+  const block = seasons.find((s) => String(s.year) === season) || seasons[0];
+  const awards = block ? block.awards || [] : [];
+  const singles = awards.filter((a) => (a.winners || []).length === 1);
+  const teams = awards.filter((a) => (a.winners || []).length > 1);
+  const winChip = (w) => `<a class="winner" href="#/player/${encodeURIComponent(w.id)}">
+      ${w.teamAbbr ? `<span class="wteam">${escapeHtml(w.teamAbbr)}</span>` : ''}
+      <span class="wname">${escapeHtml(biName(w.name))}</span></a>`;
+  const card = (a) => `<div class="honor-card">
+      <div class="honor-title"><b>${escapeHtml(a.nameZh || a.name)}</b><span>${escapeHtml(a.name)}</span></div>
+      <div class="winner-list">${(a.winners || []).map(winChip).join('')}</div>
+    </div>`;
+  app.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">HONORS</div>
+        <h1>年度荣誉榜 Honors</h1>
+        <div class="sub">按赛季查看 MVP、总决赛 MVP、最佳阵容、最佳防守阵容等 · 点击球员进入主页</div>
+      </div>
+      <select id="honorSeason" class="select">
+        ${seasons.map((s) => `<option value="${s.year}" ${String(s.year) === String(block?.year) ? 'selected' : ''}>${escapeHtml(s.label || s.year)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="section">
+      <div class="section-head"><h2>${escapeHtml(block?.label || '')} 赛季主要奖项</h2><span class="more">${awards.length} 个奖项</span></div>
+      <div class="honor-grid">${singles.map(card).join('')}</div>
+    </div>
+    <div class="section">
+      <div class="section-head"><h2>最佳阵容 / 最佳防守阵容</h2><span class="more">All-NBA &amp; All-Defensive</span></div>
+      <div class="honor-grid wide">${teams.map(card).join('')}</div>
+    </div>`;
+  const sel = document.getElementById('honorSeason');
+  if (sel) sel.addEventListener('change', (e) => {
+    location.hash = `#/honors?season=${e.target.value}`;
+  });
 }
 
 /* ============================== 球队 ============================== */
@@ -929,7 +1022,7 @@ async function viewTeam(seg) {
               <tr class="clickable" onclick="location.hash='#/player/${encodeURIComponent(p.id)}'">
                 <td>${escapeHtml(p.jersey || '—')}</td>
                 <td><div class="tplayer">${p.headshot ? `<img class="av" src="${escapeHtml(p.headshot)}" alt="" loading="lazy">` : ''}
-                  <span class="tmeta"><b>${escapeHtml(p.name)}</b></span></div></td>
+                  <span class="tmeta"><b>${escapeHtml(biName(p.name))}</b></span></div></td>
                 <td>${escapeHtml(p.position || '—')}</td>
                 <td>${escapeHtml(p.age ?? '—')}</td>
                 <td>${escapeHtml(p.height || '—')}</td>
@@ -982,7 +1075,7 @@ async function viewLeaders(seg, q) {
             <tr class="clickable" onclick="location.hash='#/player/${encodeURIComponent(p.id)}'">
               <td>${i + 1}</td>
               <td><div class="tplayer">${p.headshot ? `<img class="av" src="${escapeHtml(p.headshot)}" alt="" loading="lazy">` : ''}
-                <span class="tmeta"><b>${escapeHtml(p.name)}</b><span>${escapeHtml(p.position || '')}</span></span></div></td>
+                <span class="tmeta"><b>${escapeHtml(biName(p.name))}</b><span>${escapeHtml(p.position || '')}</span></span></div></td>
               <td>${p.teamLogo ? `<span class="team-cell"><img src="${escapeHtml(p.teamLogo)}" alt="">${escapeHtml(p.teamAbbr || '')}</span>` : ''}</td>
               <td>${num(p.stats?.gamesPlayed, 0)}</td>
               <td><b style="font-size:16px;color:var(--accent)">${num(p.stats?.[statKey])}</b></td>
@@ -1403,11 +1496,11 @@ async function viewCompare(seg, q) {
     }).join('');
     return `<svg class="radar" viewBox="0 0 360 360">${grid}${axes}${labels}${polys}</svg>`;
   };
-  const legend = rows.map((p, i) => `<span class="lg"><i style="background:${CMP_PALETTE[i % 4]}"></i>${escapeHtml(p.bio.name || '')}</span>`).join('');
+  const legend = rows.map((p, i) => `<span class="lg"><i style="background:${CMP_PALETTE[i % 4]}"></i>${escapeHtml(biName(p.bio.name || ''))}</span>`).join('');
   const statTable = rows.length ? `
     <div class="table-wrap">
       <table class="cmp-table">
-        <thead><tr><th>指标</th>${rows.map((p, i) => `<th style="color:${CMP_PALETTE[i % 4]}">${escapeHtml(p.bio.name || '')}</th>`).join('')}</tr></thead>
+        <thead><tr><th>指标</th>${rows.map((p, i) => `<th style="color:${CMP_PALETTE[i % 4]}">${escapeHtml(biName(p.bio.name || ''))}</th>`).join('')}</tr></thead>
         <tbody>
           ${[['GP', '出场'], ['MIN', '场均分钟'], ...CMP_METRICS.map(([k, l]) => [k, l])].map(([key, label]) => `
             <tr><td>${label}</td>
@@ -1551,6 +1644,7 @@ async function boot() {
       router();
     });
     $('#refreshBtn').addEventListener('click', () => { location.reload(); });
+    await loadZhNames();
     state.teams = await api('teams');
     state.teamMap = Object.fromEntries(state.teams.map((t) => [String(t.id), t]));
     window.addEventListener('hashchange', router);
