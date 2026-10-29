@@ -523,6 +523,9 @@
       case 'teams':
         return idx.teams;
 
+      case 'honors':
+        return dataFile('honors.json');
+
       case 'standings': {
         const year = String(q.season || idx.latest);
         return dataFile(`standings-${year}.json`);
