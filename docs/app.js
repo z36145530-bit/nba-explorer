@@ -53,6 +53,46 @@ const todayStr = () => {
 const logoOf = (team) => (team && team.logo) || '';
 const abbrOf = (team) => (team && (team.abbr || team.abbreviation)) || '';
 
+/* ---------------- 中英双语词典 ---------------- */
+const TEAM_ZH = {
+  ATL: '老鹰', BOS: '凯尔特人', BKN: '篮网', BRK: '篮网', NJN: '篮网',
+  CHA: '黄蜂', CHH: '黄蜂', CHO: '黄蜂', CHI: '公牛', CLE: '骑士',
+  DAL: '独行侠', DEN: '掘金', DET: '活塞', GSW: '勇士', GS: '勇士',
+  HOU: '火箭', IND: '步行者', LAC: '快船', LAL: '湖人', MEM: '灰熊',
+  VAN: '灰熊', MIA: '热火', MIL: '雄鹿', MIN: '森林狼', NOP: '鹈鹕',
+  NOH: '黄蜂', NYK: '尼克斯', NY: '尼克斯', OKC: '雷霆', SEA: '超音速',
+  ORL: '魔术', PHI: '76人', PHX: '太阳', PHO: '太阳', POR: '开拓者',
+  SAC: '国王', KCK: '国王', SAS: '马刺', SA: '马刺', TOR: '猛龙',
+  UTA: '爵士', WAS: '奇才', WSB: '奇才', SDC: '快船', BUF: '快船',
+};
+const POS_ZH = {
+  G: '后卫', PG: '控卫', SG: '分卫', F: '前锋', SF: '小前锋', PF: '大前锋',
+  C: '中锋', 'G-F': '锋卫', 'F-C': '前锋-中锋',
+};
+const teamZh = (abbr) => TEAM_ZH[String(abbr || '').toUpperCase()] || '';
+const teamBi = (team) => {
+  if (!team) return '';
+  const zh = teamZh(team.abbr);
+  const en = team.displayName || team.name || team.abbr || '';
+  return zh ? `${zh} ${en}` : en;
+};
+const posBi = (pos) => {
+  const zh = POS_ZH[String(pos || '').toUpperCase()];
+  return zh ? `${pos} ${zh}` : (pos || '');
+};
+const enc = (text) => encodeURIComponent(String(text || ''));
+
+/* 历史与现用缩写归一（538 数据用现名，ESPN 排名用当季名） */
+const ABBR_FIX = {
+  NJ: 'BKN', NJN: 'BKN', NY: 'NYK', SEA: 'OKC', SA: 'SAS', UTAH: 'UTA',
+  WSH: 'WAS', PHX: 'PHO', GS: 'GSW', CHH: 'CHA', VAN: 'MEM', NOH: 'NOP',
+  KCK: 'SAC', SDC: 'LAC', BUF: 'LAC', WSB: 'WAS', NOJ: 'NOP', NO: 'NOP',
+};
+const fixAbbr = (abbr) => {
+  const up = String(abbr || '').toUpperCase();
+  return ABBR_FIX[up] || up;
+};
+
 /* ============================== API ============================== */
 async function api(path, params = {}) {
   // 纯静态版（GitHub Pages）：交给 api-static.js 的本地/ESPN 实现
@@ -190,6 +230,7 @@ function router() {
     compare: viewCompare,
     calendar: viewCalendar,
     shots: viewShots,
+    playoffs: viewPlayoffs,
   };
   const view = views[state.route] || viewHome;
   app.innerHTML = '<div class="skeleton" style="height:220px"></div>';
@@ -249,7 +290,7 @@ async function viewHome() {
 
     <section class="section">
       <div class="section-head">
-        <h2>最近赛果</h2>
+        <h2>最近赛果 Recent Results</h2>
         <a class="more" href="#/games">查看全部 →</a>
       </div>
       <div class="grid-2">
@@ -263,7 +304,7 @@ async function viewHome() {
     </section>
 
     <section class="section">
-      <div class="section-head"><h2>东西部排名</h2><a class="more" href="#/teams">全部球队 →</a></div>
+      <div class="section-head"><h2>东西部排名 Standings</h2><a class="more" href="#/teams">全部球队 →</a></div>
       <div class="standings">
         ${confs.map((g) => `<div class="table-wrap" style="padding:6px">${confTable(g)}</div>`).join('')}
       </div>
@@ -294,6 +335,7 @@ async function viewGames(seg, q) {
   const date = q.date || '';
   const team = (q.team || '').toUpperCase();
   const season = q.season ? Number(q.season) : state.season;
+  const gtype = Number(q.type || 2) === 3 ? 3 : 2;
   if (q.season && String(season) !== String(state.season)) {
     state.season = season;
     localStorage.setItem('nba-season', String(season));
@@ -303,21 +345,26 @@ async function viewGames(seg, q) {
     <div class="page-head">
       <div>
         <div class="eyebrow">Schedule & Results</div>
-        <h1>赛程与赛果</h1>
-        <div class="sub">选择日期或球队检索比赛，点击任意比赛查看单场技术统计</div>
+        <h1>赛程与赛果 Schedule & Results</h1>
+        <div class="sub">选择日期、球队或轮次检索比赛，点击任意比赛查看单场技术统计 / Filter by date, team or round</div>
       </div>
+    </div>
+    <div class="tabs" role="tablist">
+      <a class="tab ${gtype === 2 ? 'active' : ''}" href="#/games?season=${season}&type=2">常规赛 Regular Season</a>
+      <a class="tab ${gtype === 3 ? 'active' : ''}" href="#/games?season=${season}&type=3">季后赛 Playoffs</a>
+      <a class="tab" href="#/playoffs?season=${season}">对阵图 Bracket →</a>
     </div>
     <div class="filters">
       <div class="field">
-        <label>日期</label>
+        <label>日期 Date</label>
         <input type="date" id="fDate" value="${escapeHtml(date)}">
       </div>
       <div class="field">
-        <label>球队</label>
-        <select id="fTeam"><option value="">全部球队</option></select>
+        <label>球队 Team</label>
+        <select id="fTeam"><option value="">全部球队 All teams</option></select>
       </div>
-      <button class="btn small" id="btnToday">今天</button>
-      <button class="btn small" id="btnClear">最近比赛</button>
+      <button class="btn small" id="btnToday">今天 Today</button>
+      <button class="btn small" id="btnClear">最近比赛 Recent</button>
       <div class="spacer"></div>
       <div class="result-count" id="gCount"></div>
     </div>
@@ -341,11 +388,11 @@ async function viewGames(seg, q) {
   $('#btnClear').addEventListener('click', () => go({ team: teamSelect.value }));
 
   const resp = await withLoading(() => api('games', {
-    season, date, team, ...(date ? {} : { order: 'desc', limit: 80 }),
+    season, date, team, type: gtype, ...(date ? {} : { order: 'desc', limit: 80 }),
   }));
   if (!resp) return;
   const games = resp.games || [];
-  $('#gCount').textContent = `${resp.count} 场比赛`;
+  $('#gCount').textContent = `${resp.count} 场比赛 · ${gtype === 3 ? '季后赛 Playoffs' : '常规赛 Regular Season'}`;
   const list = $('#gList');
   if (!games.length) {
     list.innerHTML = emptyState('没有找到比赛', date ? '该日期暂无比赛，换一天试试，或点“最近比赛”' : '该赛季暂无数据');
@@ -375,7 +422,7 @@ async function viewGame(seg) {
   if (!id) { location.hash = '#/games'; return; }
   const payload = await withLoading(() => api('game', { id, season: state.season }));
   if (!payload) return;
-  const { game, box } = payload;
+  const { game, box, article } = payload;
   const gameDateStr = String(game?.date || game?.gameDate || '').slice(0, 10);
   if (gameDateStr.length === 10) {
     const [gy, gm] = gameDateStr.split('-').map(Number);
@@ -405,16 +452,16 @@ async function viewGame(seg) {
       <div class="box-col">
       <div class="box-team">
         ${teamBlock.team.logo ? `<img src="${escapeHtml(teamBlock.team.logo)}" alt="">` : ''}
-        <b>${escapeHtml(teamBlock.team.displayName || abbrOf(teamBlock.team))}</b>
+        <b>${escapeHtml(teamBi(teamBlock.team))}</b>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>球员</th>${labels.map((l) => `<th>${l}</th>`).join('')}</tr></thead>
+          <thead><tr><th>球员 Player</th>${labels.map((l) => `<th>${l}</th>`).join('')}</tr></thead>
           <tbody>
             ${rows.map((row) => {
               const dnp = (row.stats?.MIN || '') === '' || row.stats?.MIN === 'DNP';
               return `<tr class="${dnp ? '' : 'clickable'}" ${dnp ? '' : `onclick="location.hash='#/player/${row.id}'"`}>
-                <td><div class="tplayer"><span class="tmeta"><b>${escapeHtml(row.name)}</b><span>${escapeHtml(row.position || '')}${row.starter ? ' · 首发' : ''}</span></span></div></td>
+                <td><div class="tplayer"><span class="tmeta"><b>${escapeHtml(row.name)}</b><span>${escapeHtml(row.position || '')}${row.starter ? ' · 首发 Starter' : ''}</span></span></div></td>
                 ${labels.map((l) => `<td>${escapeHtml(statValue(row, l))}</td>`).join('')}
               </tr>`;
             }).join('')}
@@ -437,7 +484,7 @@ async function viewGame(seg) {
     const rows = [...labelMap.values()].filter((r) => r.a !== undefined && r.b !== undefined).slice(0, 14);
     return `
       <div class="section">
-        <div class="section-head"><h2>球队数据对比</h2><span class="more">${escapeHtml(abbrOf(a.team))} vs ${escapeHtml(abbrOf(b.team))}</span></div>
+        <div class="section-head"><h2>球队数据对比 Team Stats</h2><span class="more">${escapeHtml(abbrOf(a.team))} vs ${escapeHtml(abbrOf(b.team))}</span></div>
         <div class="card">
           ${rows.map((r) => {
             const na = parseFloat(String(r.a).replace(/[^\d.-]/g, '')) || 0;
@@ -453,12 +500,44 @@ async function viewGame(seg) {
       </div>`;
   })();
 
+  const newsHtml = (() => {
+    const zhHome = teamZh(home.abbr) || home.displayName || '';
+    const zhAway = teamZh(away.abbr) || away.displayName || '';
+    const dateCn = formatDate(game.date, true);
+    const base = `${zhHome} ${zhAway} ${dateCn} NBA`;
+    const links = [
+      ['腾讯体育 Tencent', `https://www.baidu.com/s?wd=${enc('site:new.qq.com ' + base)}`],
+      ['虎扑 Hupu', `https://www.baidu.com/s?wd=${enc('site:hupu.com ' + base)}`],
+      ['百度贴吧 Tieba', `https://www.baidu.com/s?wd=${enc('site:tieba.baidu.com ' + base)}`],
+      ['百度 Baidu', `https://www.baidu.com/s?wd=${enc(base)}`],
+      ['Google', `https://www.google.com/search?q=${enc(base)}`],
+    ];
+    const articleBlock = article && article.headline
+      ? `<div class="news-article">
+          <div class="na-head">ESPN 战报 · ${escapeHtml(article.headline)}</div>
+          <div class="na-body">${escapeHtml((article.story || article.description || '').slice(0, 420))}…</div>
+          ${/^\d+$/.test(String(id)) ? `<a class="na-more" href="https://www.espn.com/nba/game/_/gameId/${enc(id)}" target="_blank" rel="noopener">阅读全文 Read on ESPN ↗</a>` : ''}
+        </div>`
+      : '';
+    return `<div class="section">
+      <div class="section-head"><h2>相关报道 Related Coverage</h2><span class="more">外部搜索链接</span></div>
+      <div class="card news-card">
+        ${articleBlock}
+        <div class="news-links">${links.map(([label, url]) => `<a class="news-link" href="${url}" target="_blank" rel="noopener">${label} ↗</a>`).join('')}</div>
+        <div class="news-hint">链接会带上“球队 + 日期”关键词，在新标签页打开对应站点的搜索结果；ESPN 战报为官方 recap（部分早期比赛无存档）。</div>
+      </div>
+    </div>`;
+  })();
+
   app.innerHTML = `
     <div class="page-head">
       <div>
         <div class="eyebrow">Box Score</div>
-        <h1>比赛详情</h1>
-        <div class="sub">${escapeHtml(formatDate(game.date, true))} · ${escapeHtml(game.venue || '')}</div>
+        <h1>比赛详情 Box Score</h1>
+        <div class="sub">
+          <span class="badge ${game.seasonType === 3 ? 'po' : ''}">${game.seasonType === 3 ? '季后赛 Playoffs' : '常规赛 Regular Season'}</span>
+          ${escapeHtml(formatDate(game.date, true))} · ${escapeHtml(game.venue || '')}
+        </div>
       </div>
       <a class="btn small" href="#/shots?game=${encodeURIComponent(id)}" style="${id.indexOf('538-') === 0 ? 'display:none' : ''}">投篮热区 →</a>
       <a class="btn small ghost" href="#/games">← 返回赛程</a>
@@ -467,7 +546,7 @@ async function viewGame(seg) {
     <div class="scoreboard">
       <div class="sb-team">
         ${home.logo ? `<img src="${escapeHtml(home.logo)}" alt="">` : ''}
-        <div class="nm">${escapeHtml(home.displayName || abbrOf(home))}</div>
+        <div class="nm">${escapeHtml(teamBi(home))}</div>
         <div class="rec">${escapeHtml(home.record || '')}</div>
       </div>
       <div class="sb-center">
@@ -481,7 +560,7 @@ async function viewGame(seg) {
       </div>
       <div class="sb-team">
         ${away.logo ? `<img src="${escapeHtml(away.logo)}" alt="">` : ''}
-        <div class="nm">${escapeHtml(away.displayName || abbrOf(away))}</div>
+        <div class="nm">${escapeHtml(teamBi(away))}</div>
         <div class="rec">${escapeHtml(away.record || '')}</div>
       </div>
     </div>
@@ -494,6 +573,7 @@ async function viewGame(seg) {
       <div class="mini-note">点击球员可进入球员主页；DNP 表示未出场。</div>
     ` : emptyState('暂无本场技术统计', id.indexOf('538-') === 0 ? '1996 年以前的赛季仅收录比赛结果，暂不提供逐场技术统计' : '该场比赛的技术统计暂未收录')}
 
+    ${newsHtml}
     ${compare}
   `;
 }
@@ -519,7 +599,7 @@ async function viewPlayers(seg, q) {
     <div class="page-head">
       <div>
         <div class="eyebrow">Players</div>
-        <h1>球员数据</h1>
+        <h1>球员数据 Players</h1>
         <div class="sub">按球队、位置筛选，按任意数据排序；点击球员查看生涯数据</div>
       </div>
     </div>
@@ -582,7 +662,7 @@ async function viewPlayers(seg, q) {
 
   const resp = await withLoading(() => api('players', { season, q: search, team, pos, sort, limit, offset }));
   if (!resp) return;
-  $('#pCount').textContent = `共 ${resp.total} 人`;
+  $('#pCount').textContent = `共 ${resp.total} 人 Players`;
   const players = resp.players || [];
   if (!players.length) {
     const metaSeason = (state.meta?.seasons || []).find((s) => String(s.year) === String(season)) || {};
@@ -597,8 +677,8 @@ async function viewPlayers(seg, q) {
     <table>
       <thead>
         <tr>
-          <th>#</th><th>球员</th><th>球队</th><th>位置</th><th>场次</th><th>场均时间</th>
-          <th>得分</th><th>篮板</th><th>助攻</th><th>抢断</th><th>盖帽</th>
+          <th>#</th><th>球员 Player</th><th>球队 Team</th><th>位置 Pos</th><th>场次 GP</th><th>场均时间 MIN</th>
+          <th>得分 PTS</th><th>篮板 REB</th><th>助攻 AST</th><th>抢断 STL</th><th>盖帽 BLK</th>
           <th>FG%</th><th>3P%</th><th>FT%</th>
         </tr>
       </thead>
@@ -887,7 +967,7 @@ async function viewLeaders(seg, q) {
     <div class="page-head">
       <div>
         <div class="eyebrow">Leaderboard</div>
-        <h1>数据榜</h1>
+        <h1>数据榜 Leaders</h1>
         <div class="sub">${escapeHtml((state.meta?.seasons || []).find((s) => s.year === season)?.label || '')} 赛季 · 按场均数据排序</div>
       </div>
     </div>
@@ -911,6 +991,183 @@ async function viewLeaders(seg, q) {
         </tbody>
       </table>
     </div>
+  `;
+}
+
+
+/* ============================== 季后赛对阵图 ============================== */
+function buildBracket(games, standings, season) {
+  const meta = new Map();
+  const byAbbr = new Map();
+  for (const g of games) {
+    for (const side of ['home', 'away']) {
+      const t = g[side];
+      if (!t) continue;
+      meta.set(String(t.id), t);
+    }
+  }
+  for (const t of meta.values()) {
+    if (t.abbr) byAbbr.set(t.abbr, t);
+  }
+
+  const series = new Map();
+  const keyOf = (a, b) => [fixAbbr(a), fixAbbr(b)].sort().join('|');
+  for (const g of games) {
+    const h = g.home, a = g.away;
+    if (!h || !a || !h.abbr || !a.abbr) continue;
+    const key = keyOf(h.abbr, a.abbr);
+    let s = series.get(key);
+    if (!s) {
+      s = { key, teams: [h, a], wins: {}, games: [], last: null };
+      series.set(key, s);
+    }
+    s.games.push(g);
+    if (!s.last || String(g.gameDate || '') > String(s.last.gameDate || '')) s.last = g;
+    if (g.status?.state === 'post') {
+      if (h.winner) s.wins[fixAbbr(h.abbr)] = (s.wins[fixAbbr(h.abbr)] || 0) + 1;
+      if (a.winner) s.wins[fixAbbr(a.abbr)] = (s.wins[fixAbbr(a.abbr)] || 0) + 1;
+    }
+  }
+  const findSeries = (a, b) => (a && b ? series.get(keyOf(a, b)) || null : null);
+
+  const seeds = new Map();
+  const byConf = { E: new Map(), W: new Map() };
+  (standings?.groups || []).forEach((grp, gi) => {
+    const conf = /east/i.test(grp.name || '') ? 'E' : /west/i.test(grp.name || '') ? 'W' : gi === 0 ? 'E' : 'W';
+    for (const e of grp.entries || []) {
+      const abbr = fixAbbr(e.team?.abbr);
+      const seed = parseInt(e.stats?.playoffSeed, 10);
+      if (abbr && seed) {
+        seeds.set(abbr, { seed, conf, team: e.team });
+        byConf[conf].set(seed, abbr);
+      }
+    }
+  });
+  const seedAbbr = (conf, seed) => byConf[conf].get(seed) || '';
+
+  const winnerOf = (a, b, need) => {
+    if (!a || !b) return '';
+    const s = findSeries(a, b);
+    if (!s) return '';
+    const wa = s.wins[a] || 0;
+    const wb = s.wins[b] || 0;
+    const target = need || 4;
+    if (wa >= target && wa > wb) return a;
+    if (wb >= target && wb > wa) return b;
+    return '';
+  };
+
+  const r1Need = Number(season) <= 2003 ? 3 : 4;
+  const round1 = { E: [], W: [] };
+  for (const conf of ['E', 'W']) {
+    for (const [s1, s2] of [[1, 8], [4, 5], [3, 6], [2, 7]]) {
+      const a = seedAbbr(conf, s1);
+      const b = seedAbbr(conf, s2);
+      round1[conf].push({ conf, a, b, seeds: [s1, s2], need: r1Need });
+    }
+  }
+  const nextRound = (conf, pairList, need) => {
+    const out = [];
+    for (let i = 0; i < pairList.length; i += 2) {
+      const w1 = winnerOf(pairList[i].a, pairList[i].b, need);
+      const w2 = winnerOf(pairList[i + 1].a, pairList[i + 1].b, need);
+      out.push({ conf, a: w1, b: w2, seeds: [], need: 4 });
+    }
+    return out;
+  };
+  const round2 = { E: nextRound('E', round1.E, r1Need), W: nextRound('W', round1.W, r1Need) };
+  const round3 = { E: nextRound('E', round2.E, 4), W: nextRound('W', round2.W, 4) };
+  const finals = [{ conf: 'F', a: '', b: '', seeds: [], need: 4 }];
+  finals[0].a = winnerOf(round3.E[0].a, round3.E[0].b, 4);
+  finals[0].b = winnerOf(round3.W[0].a, round3.W[0].b, 4);
+
+  return { round1, round2, round3, finals, findSeries, meta };
+}
+
+function seriesCard(slot, findSeries, meta) {
+  if (!slot || !slot.a || !slot.b) {
+    return `<div class="bseries empty"><div class="bempty">待定 TBD</div></div>`;
+  }
+  const s = findSeries(slot.a, slot.b);
+  const tA = meta.get(String(byAbbrId(slot.a))) || slot.a;
+  return '';
+}
+
+function bracketView(season, games, standings) {
+  const byAbbrId = (abbr) => {
+    const t = [...metaAll.values()].find((x) => x.abbr === abbr);
+    return t ? t.id : abbr;
+  };
+  const metaAll = new Map();
+  const metaByAbbr = new Map();
+  for (const g of games) {
+    for (const side of ['home', 'away']) {
+      const t = g[side];
+      if (!t || !t.id) continue;
+      metaAll.set(String(t.id), t);
+      if (t.abbr) metaByAbbr.set(fixAbbr(t.abbr), t);
+    }
+  }
+  const data = buildBracket(games, standings, season);
+  const { findSeries } = data;
+
+  const card = (slot, label) => {
+    if (!slot || !slot.a || !slot.b) {
+      return `<div class="bseries empty"><div class="bempty">待定 TBD</div></div>`;
+    }
+    const s = findSeries(slot.a, slot.b);
+    const teamA = metaByAbbr.get(fixAbbr(slot.a)) || { abbr: slot.a };
+    const teamB = metaByAbbr.get(fixAbbr(slot.b)) || { abbr: slot.b };
+    const wA = s ? s.wins[slot.a] || 0 : 0;
+    const wB = s ? s.wins[slot.b] || 0 : 0;
+    const winA = wA >= 4 && wA > wB;
+    const winB = wB >= 4 && wB > wA;
+    const row = (team, wins, win) => `
+      <div class="brow ${win ? 'win' : ''}">
+        <span class="bseed">${slot.seeds && slot.seeds.length ? slot.seeds[team === teamA ? 0 : 1] : ''}</span>
+        ${team.logo ? `<img src="${escapeHtml(team.logo)}" alt="">` : '<span class="blogo-ph"></span>'}
+        <span class="bname"><b>${escapeHtml(teamZh(team.abbr) || team.name || team.abbr || '')}</b><i>${escapeHtml(team.abbr || '')}</i></span>
+        <span class="bwins">${s ? wins : '-'}</span>
+      </div>`;
+    const last = s?.last;
+    const href = last ? `#/game/${encodeURIComponent(last.id)}` : '#/games';
+    return `<a class="bseries ${winA || winB ? 'done' : ''}" href="${href}">
+      ${row(teamA, wA, winA)}
+      ${row(teamB, wB, winB)}
+      <div class="bmeta">${s ? `${wA}-${wB}` : '未开始'} · ${last ? escapeHtml(formatDate(last.date, true)) : '待定'}</div>
+    </a>`;
+  };
+
+  const column = (slots) => `<div class="bcol">${slots.map((s) => card(s)).join('')}</div>`;
+  const titles = ['东部首轮 R1', '东部半决赛 E-SF', '东部决赛 E-Finals', '总决赛 Finals',
+    '西部决赛 W-Finals', '西部半决赛 W-SF', '西部首轮 R1'];
+  const cols = [data.round1.E, data.round2.E, data.round3.E, data.finals, data.round3.W, data.round2.W, data.round1.W];
+  return `<div class="bracket-head">${titles.map((t) => `<div class="bcol-title">${t}</div>`).join('')}</div>
+  <div class="bracket">${cols.map(column).join('')}</div>`;
+}
+
+async function viewPlayoffs(seg, q) {
+  const season = q.season ? Number(q.season) : state.season;
+  const data = await withLoading(() => Promise.all([
+    api('games', { season, type: 3 }),
+    api('standings', { season }),
+  ]));
+  if (!data) return;
+  const [gamesResp, standings] = data;
+  const all = gamesResp.games || [];
+  const played = all.filter((g) => g.status?.state === 'post' || g.status?.state === 'in');
+  const html = played.length ? bracketView(season, all, standings) : emptyState('该赛季暂无季后赛数据', '季后赛比赛尚未产生，或该赛季没有季后赛记录');
+  app.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Playoff Bracket</div>
+        <h1>季后赛对阵图 Playoff Bracket</h1>
+        <div class="sub">按种子对位与比赛结果自动重建；点击任一轮系列赛进入最后一场比赛 / Rebuilt from seeds and results</div>
+      </div>
+      ${q.season ? '' : '<a class="btn small ghost" href="#/playoffs">本赛季 Current →</a>'}
+    </div>
+    ${html}
+    <div class="footnote">说明：首轮按 1-8、4-5、3-6、2-7 种子对位；1991-1995 赛季仅有比分数据，对阵图同样按种子与胜负重建。</div>
   `;
 }
 
@@ -982,7 +1239,7 @@ async function viewShots(seg, q) {
   const teams = ((data || {}).game || {}).teams || [];
   const gameInfo = finished.find((g) => String(g.id) === String(gid)) || {};
   if (!shotsAll.length) {
-    app.innerHTML = `<div class="page-head"><div><div class="eyebrow">Shot Chart</div><h1>投篮热区</h1></div></div>
+    app.innerHTML = `<div class="page-head"><div><div class="eyebrow">Shot Chart</div><h1>投篮热区 Shot Chart</h1></div></div>
       ${emptyState('这场比赛暂无投篮坐标数据', 'ESPN 仅对部分场次提供逐回合坐标，换一场试试')}`;
     return;
   }
@@ -1000,7 +1257,7 @@ async function viewShots(seg, q) {
     <div class="page-head">
       <div>
         <div class="eyebrow">Shot Chart</div>
-        <h1>投篮热区</h1>
+        <h1>投篮热区 Shot Chart</h1>
         <div class="sub">${escapeHtml(gameInfo.shortName || '')} · ${escapeHtml(formatDate(gameInfo.date ? new Date(gameInfo.date) : ''))} · 逐回合投篮坐标（英尺）</div>
       </div>
       <a class="btn small" href="#/game/${encodeURIComponent(gid)}">← 比赛详情</a>
@@ -1167,7 +1424,7 @@ async function viewCompare(seg, q) {
     <div class="page-head">
       <div>
         <div class="eyebrow">Comparison</div>
-        <h1>球员对比</h1>
+        <h1>球员对比 Compare</h1>
         <div class="sub">${escapeHtml((state.meta?.seasons || []).find((s) => s.year === season)?.label || '')} 赛季 · 雷达图为该赛季数据在联盟中的相对水平</div>
       </div>
     </div>
@@ -1249,7 +1506,7 @@ async function viewCalendar(seg, q) {
     <div class="page-head">
       <div>
         <div class="eyebrow">Calendar</div>
-        <h1>赛程日历</h1>
+        <h1>赛程日历 Calendar</h1>
         <div class="sub">${escapeHtml((state.meta?.seasons || []).find((s) => s.year === season)?.label || '')} 赛季 · 共 ${list.length} 场 · 点击日期查看当日比赛</div>
       </div>
     </div>
