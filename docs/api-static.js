@@ -214,8 +214,10 @@
       return detail ? { game: detail, box: null, source: '538' } : { game: null, box: null, source: '538' };
     }
     let box = null;
+    let summaryData = null;
     try {
       const summary = await fetchJson(`${CORE}/summary?event=${encodeURIComponent(id)}`);
+      summaryData = summary;
       box = boxFromSummary(summary);
       if (!detail) {
         const comp = ((summary.header || {}).competitions || [{}])[0] || {};
@@ -253,7 +255,30 @@
     } catch (err) {
       // 老比赛 ESPN 没有技术统计：退化为本地比赛结果
     }
-    return { game: detail, box, source: box ? 'espn' : 'local' };
+    let article = null;
+    if (summaryData) {
+      const seasonInfo = (summaryData.header || {}).season || {};
+      if (detail) {
+        if (!detail.seasonType) detail.seasonType = seasonInfo.type || 0;
+        if (!detail.season) detail.season = seasonInfo.year || null;
+      }
+      const raw = summaryData.article || {};
+      if (raw.headline || raw.story) {
+        const story = String(raw.story || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/\s+/g, ' ')
+          .trim();
+        article = {
+          headline: raw.headline || '',
+          description: raw.description || '',
+          story,
+          published: raw.published || '',
+        };
+      }
+    }
+    return { game: detail, box, source: box ? 'espn' : 'local', article };
   }
 
   /* ---------------- 球员 ---------------- */
@@ -529,6 +554,10 @@
           games = games.filter(
             (g) => g.home?.abbr === team || g.away?.abbr === team
           );
+        }
+        const stype = parseInt(q.type, 10) || 0;
+        if (stype) {
+          games = games.filter((g) => Number(g.seasonType) === stype);
         }
         const total = games.length;
         if (q.order === 'desc') games = games.slice().reverse();
