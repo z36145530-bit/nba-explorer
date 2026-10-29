@@ -1,0 +1,543 @@
+:root{
+  --bg:#070d17;
+  --bg-soft:#0b1526;
+  --card:rgba(255,255,255,.045);
+  --card-strong:rgba(255,255,255,.07);
+  --line:rgba(255,255,255,.09);
+  --line-strong:rgba(255,255,255,.16);
+  --text:#e9eef7;
+  --muted:#8b9bb4;
+  --dim:#5f708a;
+  --accent:#ff6b35;
+  --accent-soft:rgba(255,107,53,.14);
+  --blue:#4f8cff;
+  --blue-soft:rgba(79,140,255,.14);
+  --green:#35d07f;
+  --gold:#ffd166;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
+  --font:"Segoe UI",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font);
+  font-size:15px;
+  line-height:1.55;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+::selection{background:var(--accent);color:#0a0f18}
+
+.bg-grid{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:
+    radial-gradient(1100px 600px at 85% -10%, rgba(255,107,53,.13), transparent 60%),
+    radial-gradient(900px 500px at 5% 0%, rgba(79,140,255,.11), transparent 60%),
+    linear-gradient(180deg,#070d17 0%,#070d17 55%,#060a12 100%);
+}
+.bg-grid::after{
+  content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:48px 48px;
+  mask-image:radial-gradient(70% 60% at 50% 0%,#000 0%,transparent 100%);
+}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;gap:26px;
+  padding:14px 30px;
+  background:rgba(7,13,23,.82);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;font-size:17px;letter-spacing:.5px}
+.brand-icon{width:26px;height:26px;color:var(--accent);display:inline-flex}
+.brand-icon svg{width:100%;height:100%}
+.brand-text b{font-weight:800;color:var(--accent)}
+.nav{display:flex;gap:4px;margin-left:8px}
+.nav a{
+  padding:8px 14px;border-radius:10px;color:var(--muted);
+  font-size:14.5px;transition:.18s;
+}
+.nav a:hover{color:var(--text);background:rgba(255,255,255,.05)}
+.nav a.active{color:var(--text);background:var(--card-strong);box-shadow:inset 0 0 0 1px var(--line)}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
+.season-pick{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.season-pick select{
+  appearance:none;background:var(--card);color:var(--text);
+  border:1px solid var(--line);border-radius:10px;padding:7px 30px 7px 12px;
+  font-size:13.5px;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 51%,calc(100% - 11px) 51%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+.icon-btn{
+  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card);color:var(--muted);font-size:16px;cursor:pointer;transition:.18s;
+}
+.icon-btn:hover{color:var(--text);border-color:var(--line-strong)}
+
+/* ---------- 布局 ---------- */
+.app{max-width:1280px;margin:0 auto;padding:34px 30px 70px}
+.footer{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  padding:26px 20px 40px;color:var(--dim);font-size:12.5px;
+}
+.footer .dot{opacity:.5}
+
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin-bottom:22px;flex-wrap:wrap}
+.page-head h1{margin:0;font-size:26px;letter-spacing:.5px}
+.page-head .sub{color:var(--muted);font-size:13.5px;margin-top:4px}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:8px;color:var(--accent);
+  font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;
+}
+.eyebrow::before{content:"";width:18px;height:2px;background:var(--accent);border-radius:2px}
+
+/* ---------- 首页 ---------- */
+.hero{
+  position:relative;overflow:hidden;
+  border:1px solid var(--line);border-radius:22px;
+  padding:40px 42px;
+  background:
+    radial-gradient(600px 260px at 88% 10%, rgba(255,107,53,.22), transparent 65%),
+    radial-gradient(500px 240px at 70% 110%, rgba(79,140,255,.18), transparent 60%),
+    linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  box-shadow:var(--shadow);
+}
+.hero h1{margin:14px 0 10px;font-size:44px;line-height:1.12;letter-spacing:.5px}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{margin:0;color:var(--muted);max-width:620px;font-size:15px}
+.hero-actions{display:flex;gap:12px;margin-top:26px;flex-wrap:wrap}
+.hero-stats{display:flex;gap:34px;margin-top:30px;flex-wrap:wrap}
+.hero-stat b{display:block;font-size:26px;font-weight:800;letter-spacing:.5px}
+.hero-stat span{color:var(--muted);font-size:12.5px}
+
+.btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:11px 20px;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);color:var(--text);font-size:14px;cursor:pointer;
+  transition:.18s;font-weight:600;
+}
+.btn:hover{border-color:var(--line-strong);background:var(--card-strong);transform:translateY(-1px)}
+.btn.primary{background:var(--accent);border-color:transparent;color:#150a04}
+.btn.primary:hover{background:#ff7d4d}
+.btn.small{padding:7px 14px;font-size:13px;border-radius:10px}
+
+.section{margin-top:38px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:14px}
+.section-head h2{margin:0;font-size:19px;letter-spacing:.4px}
+.section-head .more{color:var(--muted);font-size:13px}
+.section-head .more:hover{color:var(--accent)}
+
+.grid-2{display:grid;grid-template-columns:1.35fr 1fr;gap:22px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+
+.card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:var(--radius);padding:20px 22px;
+  transition:.2s;
+}
+.card.hover:hover{border-color:var(--line-strong);background:var(--card-strong);transform:translateY(-2px)}
+.card h3{margin:0 0 14px;font-size:15px;color:var(--muted);font-weight:600;letter-spacing:.4px}
+
+/* 比赛卡 */
+.game-list{display:grid;gap:12px}
+.game-card{
+  display:grid;grid-template-columns:92px 1fr 92px;align-items:center;gap:14px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 20px;transition:.18s;
+}
+.game-card:hover{border-color:var(--line-strong);background:var(--card-strong)}
+.gc-team{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px;min-width:0}
+.gc-team.right{justify-content:flex-end;text-align:right}
+.gc-team img{width:30px;height:30px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.5))}
+.gc-team .abbr{letter-spacing:.5px}
+.gc-team .nm{color:var(--dim);font-size:12px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gc-mid{text-align:center}
+.gc-score{font-size:21px;font-weight:800;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.gc-score .sep{color:var(--dim);margin:0 8px;font-weight:400}
+.gc-score .win{color:var(--accent)}
+.gc-meta{font-size:11.5px;color:var(--dim);margin-top:3px;letter-spacing:.3px}
+.gc-meta .live{color:var(--green)}
+
+/* 球员列表 */
+.prow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.06)}
+.prow:last-child{border-bottom:0}
+.prow .rank{width:20px;color:var(--dim);font-size:12.5px;text-align:right}
+.prow .avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.06)}
+.prow .who{min-width:0;flex:1}
+.prow .who .nm{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prow .who .tm{font-size:11.5px;color:var(--dim)}
+.prow .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:15px}
+.prow .val small{color:var(--dim);font-weight:400;font-size:11px}
+
+/* 表格 */
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+thead th{
+  position:sticky;top:0;z-index:2;
+  background:#0d1727;color:var(--muted);font-weight:600;text-align:right;
+  padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px;letter-spacing:.4px;
+}
+thead th:first-child{text-align:left}
+tbody td{padding:10px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.05);font-variant-numeric:tabular-nums}
+tbody td:first-child{text-align:left}
+tbody tr:hover{background:rgba(255,255,255,.035)}
+tbody tr:last-child td{border-bottom:0}
+td.clickable,tr.clickable{cursor:pointer}
+.tplayer{display:flex;align-items:center;gap:10px;min-width:170px}
+.tplayer img.av{width:28px;height:28px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.06)}
+.tplayer .tmeta{display:flex;flex-direction:column;line-height:1.25}
+.tplayer .tmeta b{font-weight:600;font-size:13.5px}
+.tplayer .tmeta span{color:var(--dim);font-size:11px}
+.team-cell{display:flex;align-items:center;gap:8px}
+.team-cell img{width:22px;height:22px;object-fit:contain}
+
+/* 排行榜 / 排名 */
+.rank-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{
+  padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+  color:var(--muted);font-size:13px;cursor:pointer;transition:.16s;
+}
+.chip:hover{color:var(--text);border-color:var(--line-strong)}
+.chip.active{background:var(--accent-soft);border-color:rgba(255,107,53,.45);color:var(--accent)}
+
+.standings{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.standings table{font-size:13px}
+.standings thead th{padding:9px 10px}
+.standings tbody td{padding:8px 10px}
+
+/* 球员详情 */
+.player-hero{
+  display:flex;gap:28px;align-items:center;
+  border:1px solid var(--line);border-radius:22px;padding:28px 32px;
+  background:
+    radial-gradient(500px 220px at 8% 0%, rgba(79,140,255,.20), transparent 62%),
+    linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.015));
+  box-shadow:var(--shadow);margin-bottom:24px;
+}
+.player-hero .headshot{
+  width:132px;height:132px;border-radius:20px;object-fit:cover;
+  background:rgba(255,255,255,.06);border:1px solid var(--line);
+}
+.player-hero .pinfo{flex:1;min-width:0}
+.player-hero h1{margin:6px 0 8px;font-size:32px;letter-spacing:.4px}
+.player-hero .pmeta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13.5px;align-items:center}
+.player-hero .pmeta .sep{color:var(--dim)}
+.bio-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.bio-chips span{
+  padding:6px 12px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(255,255,255,.035);color:var(--muted);font-size:12.5px;
+}
+.bio-chips span b{color:var(--text);font-weight:600}
+.team-badge{display:flex;align-items:center;gap:10px;padding:10px 16px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.team-badge img{width:34px;height:34px;object-fit:contain}
+
+/* 比赛详情 */
+.scoreboard{
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:20px;
+  border:1px solid var(--line);border-radius:22px;padding:30px 34px;margin-bottom:26px;
+  background:
+    radial-gradient(700px 260px at 50% 0%, rgba(255,107,53,.16), transparent 62%),
+    linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.015));
+  box-shadow:var(--shadow);
+}
+.sb-team{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.sb-team img{width:78px;height:78px;object-fit:contain;filter:drop-shadow(0 10px 24px rgba(0,0,0,.5))}
+.sb-team .nm{font-size:19px;font-weight:700;letter-spacing:.4px}
+.sb-team .rec{color:var(--muted);font-size:12.5px}
+.sb-center{text-align:center;min-width:180px}
+.sb-score{font-size:44px;font-weight:800;letter-spacing:2px;font-variant-numeric:tabular-nums;line-height:1.1}
+.sb-score .sep{color:var(--dim);margin:0 10px;font-weight:400}
+.sb-score .win{color:var(--accent)}
+.sb-status{color:var(--muted);font-size:13px;margin-top:8px}
+.sb-meta{color:var(--dim);font-size:12px;margin-top:4px}
+
+.box-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.box-col{min-width:0}
+.box-team{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.box-team img{width:26px;height:26px;object-fit:contain}
+.box-team b{font-size:15px}
+.box-team .rec{color:var(--dim);font-size:12px}
+.mini-note{color:var(--dim);font-size:12px;margin-top:8px}
+
+.compare-row{
+  display:grid;grid-template-columns:1fr 120px 1fr;align-items:center;gap:12px;
+  padding:9px 0;border-bottom:1px dashed rgba(255,255,255,.06);font-size:13.5px;
+}
+.compare-row:last-child{border-bottom:0}
+.compare-row .label{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.3px}
+.compare-row .l{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.compare-row .r{text-align:left;font-variant-numeric:tabular-nums;font-weight:600}
+.bar{height:4px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:5px}
+.bar>i{display:block;height:100%;border-radius:4px}
+
+/* 球队 */
+.team-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+.team-card{
+  display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 12px;
+  background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  transition:.18s;cursor:pointer;text-align:center;
+}
+.team-card:hover{transform:translateY(-2px);border-color:var(--line-strong);background:var(--card-strong)}
+.team-card img{width:56px;height:56px;object-fit:contain}
+.team-card .tn{font-size:13.5px;font-weight:600}
+.team-card .tr{font-size:11.5px;color:var(--dim)}
+
+/* 筛选条 */
+.filters{
+  display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;
+  padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius);
+  background:var(--card);margin-bottom:20px;
+}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:11.5px;color:var(--dim);letter-spacing:.5px}
+.field input,.field select{
+  background:#0d1727;border:1px solid var(--line);border-radius:10px;color:var(--text);
+  padding:9px 12px;font-size:13.5px;min-width:150px;outline:none;transition:.16s;
+}
+.field input:focus,.field select:focus{border-color:rgba(255,107,53,.55);box-shadow:0 0 0 3px rgba(255,107,53,.12)}
+.field.grow{flex:1}
+.field.grow input{min-width:240px;width:100%}
+.filters .spacer{flex:1}
+.result-count{color:var(--dim);font-size:12.5px;align-self:center;white-space:nowrap}
+
+.pager{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:18px;color:var(--muted);font-size:13px}
+
+.empty{
+  border:1px dashed var(--line-strong);border-radius:var(--radius);
+  padding:46px 20px;text-align:center;color:var(--muted);
+}
+.empty b{display:block;color:var(--text);font-size:16px;margin-bottom:6px}
+
+.skeleton{height:120px;border-radius:var(--radius);background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));background-size:200% 100%;animation:sh 1.2s infinite}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+.loading[hidden]{display:none}
+.loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(7,13,23,.5);backdrop-filter:blur(2px);z-index:80}
+.spinner{width:38px;height:38px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{
+  position:fixed;left:50%;bottom:30px;transform:translate(-50%,20px);z-index:99;
+  background:#16202f;border:1px solid var(--line-strong);color:var(--text);
+  padding:12px 18px;border-radius:12px;font-size:13.5px;opacity:0;pointer-events:none;
+  transition:.25s;box-shadow:var(--shadow);max-width:80vw;
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:1120px){
+  .grid-2{grid-template-columns:1fr}
+  .grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}
+  .team-grid{grid-template-columns:repeat(4,1fr)}
+  .box-grid{grid-template-columns:1fr}
+  .standings{grid-template-columns:1fr}
+}
+@media (max-width:760px){
+  .topbar{flex-wrap:wrap;gap:12px;padding:12px 16px}
+  .nav{order:3;width:100%;overflow:auto}
+  .app{padding:22px 16px 60px}
+  .hero{padding:26px 22px}
+  .hero h1{font-size:30px}
+  .hero-stats{gap:20px}
+  .grid-3,.grid-4,.team-grid{grid-template-columns:repeat(2,1fr)}
+  .game-card{grid-template-columns:70px 1fr 70px;padding:12px}
+  .gc-team .nm{display:none}
+  .scoreboard{grid-template-columns:1fr;gap:14px;padding:22px}
+  .sb-score{font-size:34px}
+  .player-hero{flex-direction:column;text-align:center;padding:22px}
+  .player-hero .pmeta{justify-content:center}
+  .bio-chips{justify-content:center}
+  .filters{padding:12px}
+  .field input,.field select{min-width:120px}
+}
+
+/* ================= 投篮热区 ================= */
+.shot-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:18px;align-items:start}
+.court-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+.court-wrap{position:relative;border-radius:12px;overflow:hidden;background:#0b1322}
+.court-svg{display:block;width:100%;height:auto}
+.court-lines{fill:none;stroke:rgba(255,255,255,.22);stroke-width:.12}
+.court-lines circle{stroke:rgba(255,255,255,.22)}
+.heat-canvas{position:absolute;inset:0;width:100%;height:100%;mix-blend-mode:screen;pointer-events:none}
+.shot-dot.made{fill:var(--green);fill-opacity:.9}
+.shot-dot.miss{fill:var(--accent);fill-opacity:.42}
+.shot-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:12px 0}
+.chip-group{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.shot-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.sbox{background:var(--card-strong);border:1px solid var(--line);border-radius:12px;padding:8px 14px;display:flex;flex-direction:column;min-width:84px}
+.sbox b{font-size:19px;line-height:1.2}
+.sbox span{color:var(--muted);font-size:12px}
+.shot-players{display:flex;gap:6px;flex-wrap:wrap}
+.shot-players .chip em{color:var(--muted);font-style:normal;font-size:11px;margin-left:4px}
+.shot-side .section{margin:0}
+.shot-side .select{width:100%;margin:6px 0 10px;background:var(--bg-soft);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 10px}
+.hint{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+.btn.ghost{background:transparent;border-color:var(--line-strong);color:var(--muted)}
+
+/* ================= 球员对比 ================= */
+.cmp-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.input{background:var(--bg-soft);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 14px;min-width:240px;font-size:14px;outline:none}
+.input:focus{border-color:rgba(255,107,53,.5)}
+.cmp-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:18px;align-items:start}
+.radar-card{display:flex;flex-direction:column;align-items:center;gap:8px}
+.radar{width:100%;max-width:360px;height:auto}
+.radar .rg{fill:none;stroke:rgba(255,255,255,.10)}
+.radar .ra{stroke:rgba(255,255,255,.10)}
+.radar .rl{fill:var(--muted);font-size:9px}
+.radar .rp{stroke-width:1.6;fill-opacity:.16}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend .lg{display:flex;align-items:center;gap:6px}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.cmp-table th{white-space:nowrap}
+.cmp-table td{font-variant-numeric:tabular-nums}
+
+/* ================= 赛程日历 ================= */
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;color:var(--muted)}
+.cal-head b{color:var(--text);font-size:17px;letter-spacing:.4px}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:8px}
+.cal-week span{text-align:center;color:var(--dim);font-size:12px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.cal-day{min-height:96px;border:1px solid var(--line);border-radius:12px;padding:7px 8px;background:var(--card);display:flex;flex-direction:column;gap:3px;font-size:11.5px}
+.cal-day.empty{border:none;background:transparent;min-height:0}
+.cal-day.has{cursor:pointer}
+.cal-day.has:hover{border-color:var(--line-strong);background:var(--card-strong)}
+.cal-day.today{border-color:rgba(255,107,53,.55)}
+.cal-date{color:var(--muted);font-weight:600}
+.cal-game{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
+.cal-game b{color:var(--accent)}
+.cal-more{color:var(--dim);font-size:11px}
+
+@media (max-width:1000px){
+  .shot-layout,.cmp-grid{grid-template-columns:1fr}
+  .cal-day{min-height:74px;padding:5px}
+}
+
+
+/* ---------- v3：tabs / badge / bracket / news ---------- */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 14px; }
+.tab { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--line, #23304a); color: var(--muted, #8a97ad); font-size: 13px; text-decoration: none; }
+.tab:hover { color: #fff; border-color: #ff6b35; }
+.tab.active { background: #ff6b35; border-color: #ff6b35; color: #0b1220; font-weight: 700; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; margin-right: 8px;
+  background: #1c2740; color: #9fb0c9; border: 1px solid #2b3b5c; }
+.badge.po { background: #3a2416; color: #ffb27a; border-color: #6b3a1c; }
+.news-card { padding: 16px 18px; }
+.news-article { border-left: 3px solid #ff6b35; padding-left: 12px; margin-bottom: 14px; }
+.na-head { font-weight: 700; color: #e8eefc; margin-bottom: 6px; }
+.na-body { color: #9fb0c9; font-size: 13px; line-height: 1.7; }
+.na-more { display: inline-block; margin-top: 6px; color: #ff9a63; font-size: 13px; text-decoration: none; }
+.news-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.news-link { padding: 7px 12px; border-radius: 8px; border: 1px solid #2b3b5c; background: #131c2e;
+  color: #cdd8ea; font-size: 13px; text-decoration: none; }
+.news-link:hover { border-color: #ff6b35; color: #fff; }
+.news-hint { margin-top: 10px; color: #6f7f97; font-size: 12px; }
+.bracket { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 14px; align-items: stretch; }
+.bcol { display: flex; flex-direction: column; gap: 12px; justify-content: space-around; }
+.bcol-title { font-size: 12px; letter-spacing: .5px; color: #7d8ca6; text-align: center; padding: 4px 0 6px;
+  border-bottom: 1px dashed #23304a; margin-bottom: 4px; }
+.bseries { display: block; border: 1px solid #23304a; background: #101827; border-radius: 10px; padding: 8px 10px;
+  text-decoration: none; color: inherit; transition: border-color .15s, transform .15s; }
+.bseries:hover { border-color: #ff6b35; transform: translateY(-1px); }
+.bseries.done { border-color: #33456b; }
+.bseries.empty { border-style: dashed; opacity: .6; }
+.bempty { color: #6f7f97; font-size: 12px; text-align: center; padding: 14px 0; }
+.brow { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 13px; color: #c6d2e4; }
+.brow img { width: 18px; height: 18px; object-fit: contain; }
+.brow .bseed { width: 14px; text-align: center; color: #6f7f97; font-size: 11px; }
+.brow .bname { flex: 1; display: flex; align-items: baseline; gap: 5px; overflow: hidden; }
+.brow .bname b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brow .bname i { font-style: normal; color: #6f7f97; font-size: 11px; }
+.brow .bwins { font-variant-numeric: tabular-nums; color: #8fa1bb; }
+.brow.win { color: #fff; }
+.brow.win .bwins { color: #ff9a63; font-weight: 700; }
+.bmeta { margin-top: 6px; padding-top: 6px; border-top: 1px solid #1c2740; color: #6f7f97; font-size: 11px;
+  display: flex; justify-content: space-between; gap: 6px; }
+.footnote { margin-top: 14px; color: #6f7f97; font-size: 12px; line-height: 1.6; }
+@media (max-width: 1100px) {
+  .bracket { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+}
+
+/* ---------- v3 布局修正 ---------- */
+.nav { gap: 12px; flex-wrap: nowrap; }
+.nav a { white-space: nowrap; font-size: 13px; }
+.top-actions { white-space: nowrap; }
+.season-pick span, .season-pick label { white-space: nowrap; }
+.bracket-head { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.bracket { min-height: 660px; align-items: stretch; }
+.bcol { height: 100%; justify-content: space-around; }
+@media (max-width: 1400px) { .nav a { font-size: 12.5px; } }
+
+
+/* ===== 荣誉榜 / 球员荣誉 ===== */
+.honor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+.honor-grid.wide { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+.honor-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.honor-title { display: flex; flex-direction: column; gap: 2px; }
+.honor-title b { font-size: 16px; }
+.honor-title span { color: var(--muted); font-size: 11.5px; letter-spacing: .02em; }
+.winner-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.winner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .03);
+  border: 1px solid var(--line);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+}
+.winner:hover { border-color: var(--accent); color: var(--accent); }
+.winner .wteam { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; }
+.winner .wname { white-space: nowrap; }
+.honor-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.honor-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 107, 53, .07);
+  border: 1px solid rgba(255, 107, 53, .25);
+  font-size: 13px;
+}
+.honor-chip b { color: var(--accent); font-size: 13px; }
+.honor-chip em { font-style: normal; color: var(--muted); font-size: 11px; }
+
+/* 双语球员名：不换行，必要时横向滚动 */
+.tplayer{min-width:210px}
+.tplayer .tmeta b{white-space:nowrap}
+.table-wrap{overflow-x:auto}
+
+.page-head select, .page-head .select {
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
