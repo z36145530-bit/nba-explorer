@@ -100,3 +100,10 @@ python deploy_pages_fast.py      # 部署（需 GITHUB_TOKEN）
 3. 等待 1–2 分钟即可访问 `https://<用户名>.github.io/<仓库名>/`。
 
 也可以直接 `docker build -t nba-explorer . && docker run -p 8080:8080 nba-explorer` 跑本地后端版。
+
+## v4（2026-10-29）
+
+- 球员姓名中英双语：data/player-name-zh.json（431 位常见/历史球员），前端按英文名归一化匹配；未收录的冷门球员保留英文名
+- 年度荣誉榜 #/honors：1990-91 至 2025-26 共 36 个赛季，含 MVP、DPOY、ROY、6MOY、MIP、FMVP、全明星 MVP、最佳队友、最佳阵容、最佳防守阵容、最佳新秀阵容
+- 球员主页新增「荣誉 Honors」区块，汇总该球员生涯所有获奖记录
+- 荣誉数据来自 ESPN Core API：/seasons/{year}/awards（奖项）+ 每位获奖者的 athlete 详情（姓名/球队）
